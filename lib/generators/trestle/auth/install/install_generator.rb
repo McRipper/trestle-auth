@@ -97,6 +97,12 @@ module Trestle
               #
               # config.auth.redirect_on_logout = -> { "/" }
 
+              # Specify the redirect location when access is denied.
+              # Defaults to the admin index (if authorized), otherwise falling back to
+              # the main Trestle admin path.
+              #
+              # config.auth.redirect_on_access_denied = -> { "/" }
+
               # Specify the logo used on the login form.
               # If not specified, will fall back to config.site_logo,
               # config.site_logo_small or config.site_title.
