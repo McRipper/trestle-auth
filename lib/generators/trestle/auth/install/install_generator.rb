@@ -18,7 +18,7 @@ module Trestle
         end
 
         def insert_configuration
-          inject_into_file "config/initializers/trestle.rb", before: /^end/ do
+          inject_into_file "config/initializers/trestle.rb", before: /end(?!.*end.*)/m do
             format_configuration(template_content(configuration_template))
           end
         end
@@ -28,15 +28,19 @@ module Trestle
         end
 
         def generate_admin
-          generate "trestle:auth:admin", model, ("--devise" if devise?)
+          generate "trestle:auth:admin", model, *("--devise" if devise?)
         end
 
         def generate_account
-          generate "trestle:auth:account", model, ("--devise" if devise?) unless options[:skip_account]
+          generate "trestle:auth:account", model, *("--devise" if devise?) unless skip_account?
         end
 
         def devise?
           options[:devise]
+        end
+
+        def skip_account?
+          options[:skip_account]
         end
 
         def configuration_template
@@ -52,11 +56,19 @@ module Trestle
           path = File.expand_path(find_in_source_paths(path.to_s))
           context = options.delete(:context) || instance_eval("binding")
 
-          capturable_erb = CapturableERB.new(::File.binread(path), trim_mode: "-", eoutvar: "@output_buffer")
-
-          content = capturable_erb.tap do |erb|
+          content = capturable_erb(path).tap do |erb|
             erb.filename = path
           end.result(context)
+        end
+
+        def capturable_erb(path)
+          match = ERB.version.match(/(\d+\.\d+\.\d+)/)
+
+          if match && match[1] >= "2.2.0" # Ruby 2.6+
+            CapturableERB.new(::File.binread(path), trim_mode: "-", eoutvar: "@output_buffer")
+          else
+            CapturableERB.new(::File.binread(path), nil, "-", "@output_buffer")
+          end
         end
       end
     end
